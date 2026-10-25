@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CI/CD Pipeline Demo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <main class="container">
+    <p class="eyebrow">CLOUD COMPUTING &amp; DEVOPS</p>
+    <h1>CI/CD Pipeline Demonstration</h1>
+    <p class="intro">A small Flask application for demonstrating GitHub, Jenkins, Docker, Amazon ECR, and Kubernetes.</p>
+    <section class="card">
+      <h2>Application status</h2>
+      <p id="status">Checking application...</p>
+      <button id="check-button" type="button">Check again</button>
+    </section>
+    <section class="card">
+      <h2>Student service</h2>
+      <pre id="student-data">Loading service data...</pre>
+      <button id="student-button" type="button">Load service data</button>
+    </section>
+    <footer>Built for a learning demonstration. Do not store credentials in this repository.</footer>
+  </main>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

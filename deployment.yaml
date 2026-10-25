@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-cicd-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend-cicd
+  template:
+    metadata:
+      labels:
+        app: frontend-cicd
+    spec:
+      containers:
+        - name: frontend-cicd
+          # Replace ACCOUNT_ID with your AWS account ID after ECR is configured.
+          image: ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/image-regi:latest
+          ports:
+            - containerPort: 5000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 20
