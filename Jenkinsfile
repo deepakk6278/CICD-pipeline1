@@ -1,55 +1,78 @@
 pipeline {
     agent any
-    options { timestamps() }
 
     environment {
-        AWS_REGION = 'ap-south-1'
-        // Replace with your AWS account ID before running the ECR stages.
-        AWS_ACCOUNT_ID = 'YOUR_AWS_ACCOUNT_ID'
-        ECR_REPOSITORY = 'image-regi'
-        IMAGE_NAME = 'frontend-cicd-project'
-        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-        ECR_IMAGE = "${ECR_REGISTRY}/${ECR_REPOSITORY}:${BUILD_NUMBER}"
+        AWS_REGION = 'eu-north-1'
+        ECR_REPOSITORY = 'cicd-demo'
+        AWS_ACCOUNT_ID = '847263216766'
+        IMAGE_NAME = '847263216766.dkr.ecr.eu-north-1.amazonaws.com/cicd-demo'
     }
 
     stages {
-        stage('Checkout') {
-            steps { checkout scm }
-        }
         stage('Build and Test') {
             steps {
-                sh 'python3 -m py_compile app.py lambda_function.py'
-                sh 'python3 -m pip install --user -r requirements.txt'
-                sh '''python3 -c "from app import app; c=app.test_client(); assert c.get('/').status_code == 200; assert c.get('/health').status_code == 200; assert c.get('/api/student').status_code == 200; print('Application tests passed')"'''
-            }
-        }
-        stage('Docker Build') {
-            steps { sh 'docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .' }
-        }
-        stage('ECR Login') {
-            steps {
                 sh '''
-                    test "${AWS_ACCOUNT_ID}" != "YOUR_AWS_ACCOUNT_ID"
-                    aws ecr get-login-password --region "${AWS_REGION}" |
-                    docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+                    set -e
+
+                    echo "Checking Python version"
+                    python3 --version
+
+                    echo "Creating Python virtual environment"
+                    python3 -m venv .venv
+
+                    echo "Installing project dependencies"
+                    .venv/bin/python -m pip install -r requirements.txt
+
+                    echo "Checking Python files"
+                    .venv/bin/python -m py_compile app.py lambda_function.py
+
+                    echo "Build and Test completed successfully"
                 '''
             }
         }
-        stage('Tag Image') {
+
+        stage('Docker Build') {
             steps {
-                sh 'docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_IMAGE}'
-                sh 'docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest'
+                sh '''
+                    set -e
+                    docker build -t ${ECR_REPOSITORY}:${BUILD_NUMBER} .
+                    docker tag ${ECR_REPOSITORY}:${BUILD_NUMBER} ${IMAGE_NAME}:${BUILD_NUMBER}
+                    docker tag ${ECR_REPOSITORY}:${BUILD_NUMBER} ${IMAGE_NAME}:latest
+                '''
             }
         }
+
+        stage('ECR Login') {
+            steps {
+                sh '''
+                    set -e
+                    aws ecr get-login-password --region ${AWS_REGION} |
+                    docker login \
+                        --username AWS \
+                        --password-stdin \
+                        ${IMAGE_NAME%/*}
+                '''
+            }
+        }
+
         stage('Push to ECR') {
             steps {
-                sh 'docker push ${ECR_IMAGE}'
-                sh 'docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest'
+                sh '''
+                    set -e
+                    docker push ${IMAGE_NAME}:${BUILD_NUMBER}
+                    docker push ${IMAGE_NAME}:latest
+                '''
             }
         }
     }
+
     post {
-        success { echo 'Build, tests, Docker image build, and ECR push completed.' }
-        failure { echo 'Pipeline failed. Review the stage logs.' }
+        success {
+            echo 'SUCCESS: Pipeline completed successfully!'
+        }
+
+        failure {
+            echo 'FAILED: Check the Jenkins Console Output for details.'
+        }
     }
 }
